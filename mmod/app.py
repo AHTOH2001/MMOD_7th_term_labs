@@ -7,21 +7,48 @@ from .task_factory import TaskFactory
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
+        mainmenu = tk.Menu(self)
+        self.config(menu=mainmenu)
+        gomenu = tk.Menu(mainmenu, tearoff=0)
+        gomenu.add_command(label="Back", command=self.destroy_current_frame)
+        mainmenu.add_cascade(label="Go", menu=gomenu)
         self.columnconfigure(0, minsize=250)
+        self.frame_stack = list()
+
+    def destroy_current_frame(self):
+        if len(self.frame_stack) > 1:
+            frame = self.frame_stack.pop()
+            print("destroy")
+            frame.destroy()
+
+    # def clean_screen(self):
+    #     for widget in self.winfo_children():
+    #         widget.destroy()
 
     def init_tasks_buttons(self, tasks):
+        frame = self.create_new_frame()
         for i, task_name in enumerate(tasks):
             button = tk.Button(
-                self, text=task_name, command=partial(self.init_task, task_name)
+                frame, text=task_name, command=partial(self.init_task, task_name)
             )
             button.grid(row=i, padx=5, pady=10)
 
     def init_task(self, task_name):
-        task_factory = TaskFactory()
-        TaskFrame = task_factory.create_task(task_name)
+        frame = self.create_new_frame()
+        TaskFrame = TaskFactory.create_task(task_name)
 
-        for widget in self.winfo_children():
-            widget.destroy()
+        # self.clean_screen()
 
-        task_frame = TaskFrame(self)
-        task_frame.pack()
+        task_frame = TaskFrame(frame)
+        task_frame.grid()
+
+    def create_new_frame(self):
+        if len(self.frame_stack) == 0:
+            frame = tk.Frame(self, borderwidth=2, bg="red", width=100)
+            frame.grid(row=0)
+        else:
+            frame = tk.Frame(self.frame_stack[-1], borderwidth=2, bg="green", width=1000)
+            frame.grid(row=0, columnspan=10, rowspan=10)
+
+        self.frame_stack.append(frame)
+        return frame
