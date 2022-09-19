@@ -9,7 +9,7 @@ class App(tk.Tk):
         super().__init__(*args, *kwargs)
         self.columnconfigure(0, minsize=250)
 
-    def init_gui(self, tasks):
+    def init_tasks_buttons(self, tasks):
         for i, task_name in enumerate(tasks):
             button = tk.Button(
                 self, text=task_name, command=partial(self.init_task, task_name)
