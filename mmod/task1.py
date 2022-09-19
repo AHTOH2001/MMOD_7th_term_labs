@@ -66,5 +66,5 @@ class Task1Frame(tk.Frame):
         tk.Label(self, text='Theoretical True events:').grid(row=4, column=0)
         tk.Label(self, text=f'{probability * 100:.4f}%').grid(row=4, column=1)
 
-        tk.Label(self, text='Actual False events:').grid(row=5, column=0)
+        tk.Label(self, text='Theoretical False events:').grid(row=5, column=0)
         tk.Label(self, text=f'{(1 - probability) * 100:.4f}%').grid(row=5, column=1)
