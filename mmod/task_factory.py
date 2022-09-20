@@ -2,6 +2,7 @@ import tkinter as tk
 
 from .task1 import Task1Frame
 from .task2 import Task2Frame
+from .task3 import Task3Frame
 
 
 class TaskFactory:
@@ -11,5 +12,7 @@ class TaskFactory:
             return Task1Frame
         elif task_name == 'task2':
             return Task2Frame
+        elif task_name == 'task3':
+            return Task3Frame
 
         raise NotImplementedError(f"Task {task_name} was not implemented")
