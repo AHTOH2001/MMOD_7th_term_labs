@@ -50,9 +50,11 @@ class Task2Frame(tk.Frame):
         tk.Label(self, text='Enter probabilities: ').grid(row=3, column=0)
         for entry in self.entry_columns:
             entry.destroy()
+        self.entry_columns.clear()
 
         for label in self.label_columns:
             label.destroy()
+        self.label_columns.clear()
 
         for i in range(k):
             entry = tk.Entry(self)
