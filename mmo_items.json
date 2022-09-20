@@ -1,0 +1,27 @@
+{
+    "items": {
+        "common": [
+            "c_item1",
+            "c_item2",
+            "c_item3",
+            "c_item4",
+            "c_item5",
+            "c_item6"
+        ],
+        "rare": [
+            "r_item1",
+            "r_item2",
+            "r_item3",
+            "r_item4"
+        ],
+        "ultra-rare": [
+            "u_item1",
+            "u_item2"
+        ]
+    },
+    "probabilities": {
+        "common": 0.89,
+        "rare": 0.1,
+        "ultra-rare": 0.01
+    }
+}
