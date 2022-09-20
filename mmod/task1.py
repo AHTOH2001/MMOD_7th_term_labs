@@ -12,14 +12,14 @@ class Task1Frame(tk.Frame):
         self.header_label.grid(row=0, column=1)
 
         tk.Label(self, text='Input probability: ').grid(row=1, column=0)
-        self.entry = tk.Entry(self, width=50)
+        self.entry = tk.Entry(self)
         self.entry.bind('<Return>', self.on_submit)
         self.entry.grid(row=1, column=1, padx=5, pady=5)
 
     def set_error_message(self, err_message):
         self.header_label['text'] = err_message
 
-    def validate_value(self, value) -> float:
+    def validate_is_probability(self, value) -> float:
         try:
             value = float(value)
         except:
@@ -36,7 +36,7 @@ class Task1Frame(tk.Frame):
         value = self.entry.get()
         self.set_error_message('')
         try:
-            probability = self.validate_value(value)
+            probability = self.validate_is_probability(value)
         except ValidationError:
             return
 
