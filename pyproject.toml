@@ -6,6 +6,7 @@ authors = ["AHTOH_mac <antonlapytko@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+matplotlib = "^3.6.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"

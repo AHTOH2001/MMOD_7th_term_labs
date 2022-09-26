@@ -1,5 +1,10 @@
+import math
 import random
 import tkinter as tk
+from collections import Counter
+
+import matplotlib
+import matplotlib.pyplot as plt
 
 from . import config
 from .exceptions import ValidationError
@@ -10,7 +15,7 @@ class Task1Frame(tk.Frame):
         super().__init__(*args, *kwargs)
         tk.Label(
             self,
-            text="Генератор непрерывного* равномерного распределения на интервале (a, b) методом обратных функций",
+            text="Генератор непрерывного равномерного распределения на интервале (a, b) методом обратных функций",
         ).grid(row=0, column=0, columnspan=4)
 
         self.header_label_a = tk.Label(self, fg="red")
@@ -52,9 +57,16 @@ class Task1Frame(tk.Frame):
         except ValidationError:
             return
 
+        if value_a > value_b:
+            self.set_error_message(self.header_label_a, "a should be less than b")
+            return
+
         data = self.generate(value_a, value_b)
-        self.show_actual_report(data)
-        # self.show_theoretical_report(probability)
+        self.show_listbox_report(data)
+        self.show_method(value_a, value_b)
+        self.show_histogram_report(data)
+        self.show_actual_point_estimate(data)
+        self.show_theoretical_point_estimate(value_a, value_b)
 
     @staticmethod
     def generate(a, b):
@@ -64,25 +76,69 @@ class Task1Frame(tk.Frame):
         return data
 
     @staticmethod
-    def f(a, b):
+    def f(a, b, r=None):
         """
-        Интеграл x / (b - a) от a до x это (x - a) / (b - a) = r
+        Интеграл dx / (b - a) от a до x это (x - a) / (b - a) = r
         отсюда x = (b - a) * r + a
         r распределен равномерно на промежутке [0, 1)
+        https://mydocx.ru/2-119450.html
         """
-        r = random.random()
+        if r is None:
+            r = random.random()
         return (b - a) * r + a
 
-    def show_actual_report(self, data):
+    def show_listbox_report(self, data):
         tk.Label(self, text="Generated data:").grid(row=3, column=0, rowspan=2)
         listbox = tk.Listbox(self)
-        [listbox.insert(tk.END, e) for e in sorted(data)]
+        sorted_data = sorted(data)
+        [
+            listbox.insert(tk.END, e)
+            for e in sorted_data[:20] + ['...'] + sorted_data[-20:]
+        ]
         listbox.grid(row=3, column=1, rowspan=2, columnspan=2)
-        
 
-    def show_theoretical_report(self, probability):
-        tk.Label(self, text="Theoretical True events:").grid(row=4, column=0)
-        tk.Label(self, text=f"{probability * 100:.4f}%").grid(row=4, column=1)
+    def show_method(self, value_a, value_b):
+        fig, ax = plt.subplots()
+        x = [random.random() for i in range(10)]
+        y = [self.f(value_a, value_b, xi) for xi in x]
+        ax.scatter(x, y)
+        ax.set_facecolor('seashell')
+        fig.set_facecolor('floralwhite')
+        fig.set_figwidth(12)  #  ширина Figure
+        fig.set_figheight(6)  #  высота Figure
 
-        tk.Label(self, text="Theoretical False events:").grid(row=5, column=0)
-        tk.Label(self, text=f"{(1 - probability) * 100:.4f}%").grid(row=5, column=1)
+        plt.show()
+
+    def show_histogram_report(self, data):
+        fig, ax = plt.subplots()
+        counter = Counter([math.floor(e) + 0.5 for e in data])
+        ax.bar(counter.keys(), counter.values())
+
+        ax.set_facecolor('seashell')
+        fig.set_facecolor('floralwhite')
+        fig.set_figwidth(12)  #  ширина Figure
+        fig.set_figheight(6)  #  высота Figure
+
+        plt.show()
+
+    def show_actual_point_estimate(self, data):
+        tk.Label(self, text="Actual point estimate M[X]:").grid(row=5, column=0)
+        tk.Label(self, text=f"{sum(data) / len(data)}").grid(row=5, column=1)
+
+        tk.Label(self, text="Actual point estimate D[X]:").grid(row=6, column=0)
+        tk.Label(self, text=f"{sum([e ** 2 for e in data]) / len(data)}").grid(
+            row=6, column=1
+        )
+
+    def show_theoretical_point_estimate(self, a, b):
+        """
+        p(x) = 1 / (a + b) при x на [a, b]
+        M[X] - Интеграл x * p(x) от a до b
+        D[X] - интеграл x^2 * p(x) от a до b
+        http://old.gsu.by/biglib/GSU/%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9/%D0%AD%D0%9A%D0%B8%D0%A2%D0%92/%D1%80%D1%83%D0%BA-%D0%BB%D0%B0%D0%B1-%D0%9C%D0%A1/2%20%D0%A1%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5%20%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8%20%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D1%8B%D1%85%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D0%BE%D0%B2.pdf
+        """
+        tk.Label(self, text="Theoretical point estimate M[X]:").grid(row=7, column=0)
+        tk.Label(self, text=f"{(a + b) / 2}").grid(row=7, column=1)
+
+        tk.Label(self, text="Theoretical point estimate D[X]:").grid(row=8, column=0)
+        tk.Label(self, text=f"{(a ** 2 + a * b + b ** 2) / 3}").grid(row=8, column=1)
