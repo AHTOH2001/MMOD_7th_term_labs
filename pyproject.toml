@@ -5,8 +5,9 @@ description = ""
 authors = ["AHTOH_mac <antonlapytko@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.8,<3.12"
 matplotlib = "^3.6.0"
+scipy = "^1.9.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
