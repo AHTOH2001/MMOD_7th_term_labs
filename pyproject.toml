@@ -8,6 +8,7 @@ authors = ["AHTOH_mac <antonlapytko@gmail.com>"]
 python = ">=3.8,<3.12"
 matplotlib = "^3.6.0"
 scipy = "^1.9.1"
+seaborn = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
