@@ -1,46 +1,36 @@
 from tkinter import *
 from tkinter import ttk, messagebox
 
-import math
 import random
-from collections import Counter
-from math import pi
-import scipy.stats as sta
-import matplotlib
 import matplotlib.pyplot as plt
 import scipy
-from scipy import integrate
-import scipy.optimize as opt
 
-# 2
-
-import sympy as sp
 import numpy as np
 
 
 class Task2Frame(Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
-        window = Tk()
-        window.geometry('500x450')
-        window.configure(bg='#ffe1ca')
-        window.title("Ммод 3 лр")
         lbl = Label(
-            window,
+            self,
             text='Введите матрицу распределения ДСВ',
-            font=("Arial Bold", 15),
-            fg='#1e90ff',
         )
-        lbl.grid(column=1, row=0)
+        lbl.grid(column=0, row=0, columnspan=2)
 
-        self.entry = Entry(window)
-        self.entry.grid(column=0, row=2)
+        self.entry_matrix = Entry(self)
+        self.entry_matrix.grid(column=1, row=2)
 
-        btn = Button(window, text="Click", command=self.task2)
-        btn.grid(column=0, row=5)
+        lbl = Label(self, text='matrix:')
+        lbl.grid(column=0, row=2)
 
-        label = Label(window)
-        label.grid(column=0, row=7)
+        self.entry_values = Entry(self)
+        self.entry_values.grid(column=1, row=3)
+
+        lbl = Label(self, text='values:')
+        lbl.grid(column=0, row=3)
+
+        btn = Button(self, text="Запуск", command=self.task2)
+        btn.grid(column=1, row=4)
 
     def get_cond(self, data_p):
         n = data_p.shape[0]
@@ -58,17 +48,22 @@ class Task2Frame(Frame):
     # def get_cond(data_p) :
 
     def task2(self, alpha=0.05):
-        data_p = self.entry.get()
+        data_p = self.entry_matrix.get()
         data_p = eval(data_p)
         data_p = np.array(data_p)
 
+        values = self.entry_values.get()
+        print(values)
+        x, y = eval(values)
+        x, y = np.array(x), np.array(y)
+
         n = data_p.shape[0]
         m = data_p.shape[1]
-
-        # значения дсв
-        x = np.array([i for i in range(data_p.shape[0])])
-        y = np.array([i for i in range(data_p.shape[1])])
-        messagebox.showinfo('значения дсв', f"значения дсв x={x}\n y={y}")
+        print(data_p)
+        print(x, y)
+        if len(x) != n or len(y) != m:
+            messagebox.showinfo('Error', "Размерность матрицы и значений не совпадают")
+            return
 
         p_x = np.sum(data_p, axis=1)
         print(x, p_x)
@@ -76,8 +71,7 @@ class Task2Frame(Frame):
         # https://www.matburo.ru/ex_tv.php?p1=tv2md
         print(np.sum(data_p))
         if np.sum(data_p) != 1:
-            print("user durak")
-            messagebox.showinfo('ошибка', "user durak")
+            messagebox.showinfo('Error', "Сумма матрицы дожны быть равна 1")
             return
 
         else:
@@ -101,7 +95,13 @@ class Task2Frame(Frame):
             print(res_xi_when_yj)
             messagebox.showinfo(
                 'условные плотности',
-                f"res_xi_when_yj = {res_xi_when_yj}\n\n res_yj_when_xi = {res_yj_when_xi}",
+                f"""
+x|y:
+{res_xi_when_yj}
+
+y|x:
+{res_yj_when_xi}
+""",
             )
 
             # моделирование
@@ -171,7 +171,7 @@ class Task2Frame(Frame):
 
             real = get_real(res_x, res_y, res, x, y)
             print(real)
-            messagebox.showinfo('практические', f"{real}")
+            messagebox.showinfo('фактические', f"{real}")
 
             def my_hist(arr, fig, ax, k, color=None):
                 counts = np.unique(arr, return_counts=True)[1]
