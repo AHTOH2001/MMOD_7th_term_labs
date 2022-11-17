@@ -11,69 +11,58 @@ import scipy
 import scipy.stats as sta
 import sympy as sp
 
+from . import config
+
 
 class Task1Frame(Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
         self.a, self.b = 0, pi / 2
-        ANSWER = self.dens()
-        window = Tk()
-        window.geometry('700x450')
-        window.title("Ммод 3 лр")
-        lbl = Label(window, text="0.5*sin(x+y)", font=("Arial Bold", 25), fg='#1e90ff')
-        lbl.grid(column=1, row=0)
-        lbl = Label(window, text=f"a = {self.a}", font=("Arial Bold", 15), fg='#1e90ff')
+        result = self.calculate()
+        lbl = Label(self, text="f(x,y) = 0.5*sin(x+y)")
+        lbl.grid(column=0, row=0)
+        lbl = Label(self, text=f"0 <= x, y <= pi / 2")
         lbl.grid(column=0, row=1)
-        lbl = Label(window, text=f"b = {self.b}", font=("Arial Bold", 15), fg='#1e90ff')
-        lbl.grid(column=2, row=1)
 
         btn = Button(
-            window,
-            text="рассчитать плотности!",
-            bg="blue",
-            fg="black",
-            command=partial(self.dens_info, ANSWER=ANSWER),
+            self,
+            text="Плотности распределения",
+            command=partial(self.dens_info, result=result),
         )
-        btn.grid(column=0, row=5)
+        btn.grid(column=0, row=2)
         btn = Button(
-            window,
-            text="графики гистограммы",
-            bg="blue",
-            fg="black",
+            self,
+            text="Графики",
             command=partial(
                 self.graf,
-                f=ANSWER["f"],
-                fx=ANSWER["fx"],
-                fy_x=ANSWER["fy_x"],
-                res_y_big=ANSWER["res_y_big"],
-                res_x_big=ANSWER["res_x_big"],
+                f=result["f"],
+                fx=result["fx"],
+                fy_x=result["fy_x"],
+                res_y_big=result["res_y_big"],
+                res_x_big=result["res_x_big"],
             ),
         )
-        btn.grid(column=2, row=5)
+        btn.grid(column=0, row=3)
 
         btn = Button(
-            window,
-            text="Рассчитать реальные",
-            bg="blue",
-            fg="black",
+            self,
+            text="Фактические оценки",
             command=partial(
-                self.get_real, res_y=ANSWER["res_y_big"], res_x=ANSWER["res_x_big"]
+                self.get_real, res_y=result["res_y_big"], res_x=result["res_x_big"]
             ),
         )
-        btn.grid(column=0, row=7)
+        btn.grid(column=0, row=4)
         btn = Button(
-            window,
-            text="Рассчитать теоритические",
-            bg="blue",
-            fg="black",
+            self,
+            text="Теоретические оценки",
             command=partial(
                 self.calc_teor,
-                f=ANSWER["f"],
-                res_y=ANSWER["res_y_big"],
-                res_x=ANSWER["res_x_big"],
+                f=result["f"],
+                res_y=result["res_y_big"],
+                res_x=result["res_x_big"],
             ),
         )
-        btn.grid(column=2, row=7)
+        btn.grid(column=0, row=5)
 
     def my_hist(self, res, ff, fig, ax, color=None):
         bins = (int)(math.log10(100000) * 2)
@@ -89,6 +78,7 @@ class Task1Frame(Frame):
             color=color,
         )
         ax.plot(ls, [ff(i) for i in ls], color='red')
+        ax.set_title('hist X')
 
     def my_hist_y(self, res_x, res_y, ff, fig, ax, color=None):
         bins = (int)(math.log10(100000) * 2)
@@ -108,9 +98,10 @@ class Task1Frame(Frame):
         for i in ls:
             res.append(ff(xx, i))
         ax.plot(ls, res, color='red')
+        ax.set_title('hist Y')
         # МЕТОД НЕЙМАНА
 
-    def get_xyz(self, fx, fy_x, fy, W=math.sqrt(2) / 2, a=0, b=pi / 2, n=1000000):
+    def get_xyz(self, fx, fy_x, fy, W=math.sqrt(2) / 2, a=0, b=pi / 2, n=config.n):
         X = []
         Y = []
         # Z=[]
@@ -140,37 +131,28 @@ class Task1Frame(Frame):
                     flag_y = True
         return X, Y
 
-    def dens(
-        self,
-    ):
-        ANSWER = {}
+    def calculate(self):
+        np.random.seed(19680801)
+        random.seed(19680801)
+        result = {}
         x, y = sp.symbols('x y')
         expn = "0.5*sin(x+y)"
 
         gfg = sp.sympify(expn)
-        print(gfg)
         f = sp.lambdify(sp.symbols('x, y'), expn)
         a, b = 0, pi / 2
         fy = sp.integrate(expn, (x, a, b))
         fx = sp.integrate(expn, (y, a, b))
-        print('f(x):', fx)
-        print('f(y):', fy)
         dep = sp.simplify(sp.Mul(fx, fy))
-        print(dep)
         ind_flag = dep.equals(expn)
-        print(dep.equals(expn))
-        # if dep.equals(expn):
 
-        # не независимы
         # условные вероятности
         fx_y = sp.simplify(gfg / fy)
         fy_x = sp.simplify(gfg / fx)
-        print('f(x|y)', fx_y)
-        print('f(y|x)', fy_x)
-        ANSWER['f(x)'] = fx
-        ANSWER['f(y)'] = fy
-        ANSWER['f(x|y)'] = fx_y
-        ANSWER['f(y|x)'] = fy_x
+        result['f(x)'] = fx
+        result['f(y)'] = fy
+        result['f(x|y)'] = fx_y
+        result['f(y|x)'] = fy_x
         fx = sp.lambdify(sp.symbols('x'), fx)
         fy = sp.lambdify(sp.symbols('y'), fy)
         fy_x = sp.lambdify(sp.symbols('x,y'), fy_x)
@@ -178,33 +160,29 @@ class Task1Frame(Frame):
         def fy_x_max(x):
             return 1 / (math.sin(x) + math.cos(x))
 
-        res_x_big, res_y_big = self.get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=1000000)
+        res_x_big, res_y_big = self.get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=config.n)
 
-        ANSWER['fx'] = fx
-        ANSWER['fy'] = fy
-        ANSWER['fy_x'] = fy_x
-        ANSWER['f'] = f
-        ANSWER['res_x_big'] = res_x_big
-        ANSWER['res_y_big'] = res_y_big
-        ANSWER["is_independant"] = ind_flag
+        result['fx'] = fx
+        result['fy'] = fy
+        result['fy_x'] = fy_x
+        result['f'] = f
+        result['res_x_big'] = res_x_big
+        result['res_y_big'] = res_y_big
+        result["is_independant"] = ind_flag
 
-        return ANSWER
+        return result
 
     def graf(self, f, fx, fy_x, res_x_big, res_y_big):
         def fy_x_max(x):
             return 1 / (math.sin(x) + math.cos(x))
 
-        # res_x_big, res_y_big = get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=100000)
-
         fig, axes = plt.subplots(2, 1)
 
         self.my_hist(res_x_big, fx, fig, axes[0])
-        self.my_hist_y(res_x_big, res_y_big, fy_x, fig, axes[1], color="orange")
+        self.my_hist_y(res_x_big, res_y_big, fy_x, fig, axes[1], color="green")
         plt.show()
 
         res_x, res_y = self.get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=10000)
-
-        np.random.seed(19680801)
 
         fig = plt.figure()
         ax = plt.axes(projection='3d')
@@ -225,19 +203,34 @@ class Task1Frame(Frame):
         ls1, ls2 = np.meshgrid(ls1, ls2)
 
         ax.plot_surface(
-            ls1, ls2, np.array([f(*point) for point in zip(ls1, ls2)]), color="orange"
+            ls1, ls2, np.array([f(*point) for point in zip(ls1, ls2)]), color="green"
         )
         plt.show()
 
-    def dens_info(self, ANSWER):
+    def dens_info(self, result):
         messagebox.showinfo(
             'Вероятности',
-            f"f(x): {ANSWER['f(x)']} \n f(y): {ANSWER['f(y)']} \n f(x|y): {ANSWER['f(x|y)']} \n f(y|x): {ANSWER['f(y|x)']}",
+            f"""
+f(x):
+{result['f(x)']} 
+
+f(y):
+{result['f(y)']}
+""",
         )
-        if ANSWER["is_independant"]:
+        if result["is_independant"]:
             messagebox.showinfo('Вероятности', "Независмы")
         else:
             messagebox.showinfo('Вероятности', "Зависмы")
+            messagebox.showinfo(
+                f"""
+f(x|y):
+{result['f(x|y)']}
+
+f(y|x):
+{result['f(y|x)']}
+"""
+            )
 
     def calc_teor(self, res_x, res_y, f, alpha=0.05):
 
@@ -246,27 +239,26 @@ class Task1Frame(Frame):
         expn = "0.5*x*(sin(x)+cos(x))"
         a, b = 0, pi / 2
         m_x_t = sp.integrate(expn, (x, a, b))
-        print(m_x_t)
+
         expn = "0.5*y*(sin(y)+cos(y))"
         m_y_t = sp.integrate(expn, (y, a, b))
-        print(m_y_t)
 
         expn = "0.5*x*x*(sin(x)+cos(x))"
         d_x_t = sp.integrate(expn, (x, a, b)) - m_x_t**2
-        print(d_x_t)
+
         expn = "0.5*y*y*(sin(y)+cos(y))"
         d_y_t = sp.integrate(expn, (y, a, b)) - m_y_t**2
-        print(d_y_t)
+
         expn = f"(x-{m_x_t})*(y-{m_y_t})*0.5*sin(x+y)"
         cov = sp.integrate(expn, (x, a, b), (y, a, b))
         r_t = cov / (math.sqrt(d_x_t * d_y_t))
-        print(r_t)
+
         s = (
-            f"M : {[m_x_t, m_y_t]},"
+            f"M : \n{[m_x_t, m_y_t]},"
             + "\n\n"
-            + f" D: {[d_x_t, d_y_t]},"
+            + f" D: \n{[d_x_t, d_y_t]},"
             + "\n\n"
-            + f"r: {[r_t]}"
+            + f"r: \n{[r_t]}"
             + "\n\n"
         )
         # messagebox.showinfo('theoritic',s)
@@ -303,33 +295,32 @@ class Task1Frame(Frame):
             r_scaled + z * r_scaled_std
         )
 
-        # s = f"M : {[m_x, m_y]}," + "\n\n" + f" D: {[d_x, d_y]}," + "\n\n" + f"r: {[r]}" + "\n\n"
         s += (
-            f"m_x_interval: {(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
+            f"m_x_interval: \n{(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
             + "\n\n"
         )
         s += (
-            f"m_y interval: {(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
+            f"m_y interval: \n{(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
             + "\n\n"
         )
-        s += f"d_x interval: {(round(lx, 5), round(rx, 5))}," + "\n\n"
-        s += f"d_y interval: { (round(ly, 5), round(ry, 5))}," + "\n\n"
-        s += f"r interval: { (round(rxy_l, 5), round(rxy_r, 5))}," + "\n\n"
+        s += f"d_x interval: \n{(round(lx, 5), round(rx, 5))}," + "\n\n"
+        s += f"d_y interval: \n{ (round(ly, 5), round(ry, 5))}," + "\n\n"
+        s += f"r interval: \n{ (round(rxy_l, 5), round(rxy_r, 5))}," + "\n\n"
         messagebox.showinfo('both', s)
 
         # стьюдент
         n = len(res_x)
         diff = (m_x - m_x_t) * np.sqrt(n) / np.sqrt(d_x)
         critical_level = scipy.stats.t.ppf(alpha, n)
-        ss = f" check mx: {diff < abs(critical_level)}"
-        print(diff < abs(critical_level))
+        ss = f"check mx: \n{diff < abs(critical_level)}"
+
         messagebox.showinfo('hypotesis', ss)
 
         n = len(res_y)
         diff = (m_y - m_y_t) * np.sqrt(n) / np.sqrt(d_y)
         critical_level = scipy.stats.t.ppf(alpha, n)
-        ss = f" check my: {diff < abs(critical_level)}"
-        print(diff < abs(critical_level))
+        ss = f"check my: \n{diff < abs(critical_level)}"
+
         messagebox.showinfo('hypotesis', ss)
 
         # хи квадрат
@@ -340,9 +331,8 @@ class Task1Frame(Frame):
         chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
         chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
 
-        print(chi2_l < chi2 < chi2_r)
-        ss = f" check dx: {chi2_l < chi2 < chi2_r}"
-        print(diff < abs(critical_level))
+        ss = f"check dx: \n{chi2_l < chi2 < chi2_r}"
+
         messagebox.showinfo('hypotesis', ss)
 
         n = len(res_y)
@@ -352,19 +342,9 @@ class Task1Frame(Frame):
         chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
         chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
 
-        print(chi2_l < chi2 < chi2_r)
-        ss = f" check dy: {chi2_l < chi2 < chi2_r}"
-        print(diff < abs(critical_level))
-        messagebox.showinfo('hypotesis', ss)
-        # http://statistica.ru/theory/znachimost-koeffitsienta-korrelyatsii-doveritelnyy-interval/
-        # z = (np.arctanh(r) - np.arctanh(r_t)) * np.sqrt(len(res_x) - 3)
-        # critical = scipy.stats.norm.ppf(0.05)
-        # print(z < abs(critical))
-        # ss = f" check r: {z < abs(critical)}"
-        # print(diff < abs(critical_level))
-        # messagebox.showinfo('hypotesis', ss)
+        ss = f"check dy: \n{chi2_l < chi2 < chi2_r}"
 
-    # http://old.gsu.by/biglib/GSU/%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9/%D0%AD%D0%9A%D0%B8%D0%A2%D0%92/%D1%80%D1%83%D0%BA-%D0%BB%D0%B0%D0%B1-%D0%9C%D0%A1/3%20%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%B2%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8%20%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D1%8B%D1%85%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D0%BE%D0%B2.pdf
+        messagebox.showinfo('hypotesis', ss)
 
     def get_real(self, res_x, res_y, alpha=0.05):
         m_x = sum(res_x) / len(res_x)
@@ -400,24 +380,24 @@ class Task1Frame(Frame):
         )
 
         s = (
-            f"M : {[m_x, m_y]},"
+            f"M : \n{[m_x, m_y]},"
             + "\n\n"
-            + f" D: {[d_x, d_y]},"
+            + f" D: \n{[d_x, d_y]},"
             + "\n\n"
-            + f"r: {[r]}"
-            + "\n\n"
-        )
-        s += (
-            f"m_x_interval: {(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
+            + f"r: \n{[r]}"
             + "\n\n"
         )
         s += (
-            f"m_y interval: {(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
+            f"m_x_interval: \n{(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
             + "\n\n"
         )
-        s += f"d_x interval: {(round(lx, 5), round(rx, 5))}," + "\n\n"
-        s += f"d_y interval: { (round(ly, 5), round(ry, 5))}," + "\n\n"
-        # s+= f"r interval: { (round(rxy_l, 5), round(rxy_r, 5))}," +"\n\n"
+        s += (
+            f"m_y interval: \n{(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
+            + "\n\n"
+        )
+        s += f"d_x interval: \n{(round(lx, 5), round(rx, 5))}," + "\n\n"
+        s += f"d_y interval: \n{ (round(ly, 5), round(ry, 5))}," + "\n\n"
+        # s+= f"r interval: \n{ (round(rxy_l, 5), round(rxy_r, 5))}," +"\n\n"
         messagebox.showinfo('real', s)
 
         return {
