@@ -1,184 +1,432 @@
 import math
 import random
-import tkinter as tk
-from collections import Counter
+from functools import partial
+from math import pi
+from tkinter import *
+from tkinter import messagebox
 
-import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy
 import scipy.stats as sta
-
-from . import config
-from .exceptions import ValidationError
+import sympy as sp
 
 
-class Task1Frame(tk.Frame):
+class Task1Frame(Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
-        tk.Label(
-            self,
-            text="Генератор непрерывного равномерного распределения на интервале (a, b) методом обратных функций",
-        ).grid(row=0, column=0, columnspan=4)
+        self.a, self.b = 0, pi / 2
+        ANSWER = self.dens()
+        window = Tk()
+        window.geometry('700x450')
+        window.title("Ммод 3 лр")
+        lbl = Label(window, text="0.5*sin(x+y)", font=("Arial Bold", 25), fg='#1e90ff')
+        lbl.grid(column=1, row=0)
+        lbl = Label(window, text=f"a = {self.a}", font=("Arial Bold", 15), fg='#1e90ff')
+        lbl.grid(column=0, row=1)
+        lbl = Label(window, text=f"b = {self.b}", font=("Arial Bold", 15), fg='#1e90ff')
+        lbl.grid(column=2, row=1)
 
-        self.header_label_a = tk.Label(self, fg="red")
-        self.header_label_a.grid(row=1, column=1)
-        self.header_label_b = tk.Label(self, fg="red")
-        self.header_label_b.grid(row=1, column=3)
-
-        tk.Label(self, text="Input a: ").grid(row=2, column=0)
-        self.entry_a = tk.Entry(self)
-        self.entry_a.bind("<Return>", self.on_submit_ab)
-        self.entry_a.grid(row=2, column=1, padx=5, pady=5)
-
-        tk.Label(self, text="Input b: ").grid(row=2, column=2)
-        self.entry_b = tk.Entry(self)
-        self.entry_b.bind("<Return>", self.on_submit_ab)
-        self.entry_b.grid(row=2, column=3, padx=5, pady=5)
-
-    def set_error_message(self, info_label, err_message):
-        info_label["text"] = err_message
-
-    def validate_is_number(self, info_label, value) -> float:
-        try:
-            value = float(value)
-        except:
-            self.set_error_message(info_label, "Should be a number")
-            raise ValidationError()
-
-        return value
-
-    def on_submit_ab(self, ev):
-        value_a = self.entry_a.get()
-        value_b = self.entry_b.get()
-        self.set_error_message(self.header_label_a, "")
-        self.set_error_message(self.header_label_b, "")
-
-        try:
-            value_a = self.validate_is_number(self.header_label_a, value_a)
-            value_b = self.validate_is_number(self.header_label_b, value_b)
-        except ValidationError:
-            return
-
-        if value_a > value_b:
-            self.set_error_message(self.header_label_a, "a should be less than b")
-            return
-
-        data = self.generate(value_a, value_b)
-        self.show_actual_point_estimate(data)
-        self.show_theoretical_point_estimate(value_a, value_b)
-        self.show_actual_interval_estimate(data)
-        self.show_listbox_report(data)
-        self.show_method(value_a, value_b)
-        self.show_histogram_report(data)
-
-    @staticmethod
-    def generate(a, b):
-        data = list()
-        for _ in range(config.n):
-            data.append(Task1Frame.f(a, b))
-        return data
-
-    @staticmethod
-    def f(a, b, r=None):
-        """
-        Интеграл dx / (b - a) от a до x это (x - a) / (b - a) = r
-        отсюда x = (b - a) * r + a
-        r распределен равномерно на промежутке [0, 1)
-        https://mydocx.ru/2-119450.html
-        """
-        if r is None:
-            r = random.random()
-        return (b - a) * r + a
-
-    def show_listbox_report(self, data):
-        tk.Label(self, text="Generated data:").grid(row=3, column=0, rowspan=2)
-        listbox = tk.Listbox(self)
-        sorted_data = sorted(data)
-        [
-            listbox.insert(tk.END, e)
-            for e in sorted_data[:20] + ['...'] + sorted_data[-20:]
-        ]
-        listbox.grid(row=3, column=1, rowspan=2)
-
-    def show_method(self, value_a, value_b):
-        fig, ax = plt.subplots()
-        x = [random.random() for i in range(10)]
-        y = [self.f(value_a, value_b, xi) for xi in x]
-        ax.scatter(x, y)
-        ax.set_facecolor('seashell')
-        fig.set_facecolor('floralwhite')
-        fig.set_figwidth(12)  #  ширина Figure
-        fig.set_figheight(6)  #  высота Figure
-
-        plt.show()
-
-    def show_histogram_report(self, data):
-        fig, ax = plt.subplots()
-        counter = Counter([math.floor(e) + 0.5 for e in data])
-        ax.bar(counter.keys(), counter.values())
-
-        ax.set_facecolor('seashell')
-        fig.set_facecolor('floralwhite')
-        fig.set_figwidth(12)  #  ширина Figure
-        fig.set_figheight(6)  #  высота Figure
-
-        plt.show()
-
-    def show_actual_point_estimate(self, data):
-        tk.Label(self, text="Actual point estimate M[X]:").grid(row=5, column=0)
-        tk.Label(self, text=f"{self.get_actual_mx(data)}").grid(row=5, column=1)
-
-        tk.Label(self, text="Actual point estimate D[X]:").grid(row=6, column=0)
-        tk.Label(self, text=f"{self.get_actual_disp(data)}").grid(row=6, column=1)
-
-    def show_theoretical_point_estimate(self, a, b):
-        """
-        p(x) = 1 / (a + b) при x на [a, b]
-        M[X] - Интеграл x * p(x) от a до b
-        D[X] - интеграл x^2 * p(x) от a до b
-        http://old.gsu.by/biglib/GSU/%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9/%D0%AD%D0%9A%D0%B8%D0%A2%D0%92/%D1%80%D1%83%D0%BA-%D0%BB%D0%B0%D0%B1-%D0%9C%D0%A1/2%20%D0%A1%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5%20%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8%20%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D1%8B%D1%85%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D0%BE%D0%B2.pdf
-        """
-        tk.Label(self, text="Theoretical point estimate M[X]:").grid(row=7, column=0)
-        tk.Label(self, text=f"{(a + b) / 2}").grid(row=7, column=1)
-
-        tk.Label(self, text="Theoretical point estimate D[X]:").grid(row=8, column=0)
-        tk.Label(self, text=f"{(a ** 2 + a * b + b ** 2) / 3}").grid(row=8, column=1)
-
-    def show_actual_interval_estimate(self, data, confidence_level=0.95):
-        """
-        http://old.gsu.by/biglib/GSU/%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9/%D0%AD%D0%9A%D0%B8%D0%A2%D0%92/%D1%80%D1%83%D0%BA-%D0%BB%D0%B0%D0%B1-%D0%9C%D0%A1/3%20%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%B2%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8%20%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D1%8B%D1%85%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D0%BE%D0%B2.pdf
-        """
-        # from laplace
-        normal_quantile = sta.norm.ppf((1 + confidence_level) / 2)
-        sample_mean = self.get_actual_mx(data)
-        sample_disp = self.get_actual_disp(data)
-
-        left = sample_mean - math.sqrt(sample_disp / config.n) * normal_quantile
-        right = sample_mean + math.sqrt(sample_disp / config.n) * normal_quantile
-
-        tk.Label(
-            self,
-            text=f"Actual interval estimate M[X] with confidence level={confidence_level}:",
-        ).grid(row=9, column=0)
-        tk.Label(self, text=f"[{left}, {right}]").grid(row=9, column=1)
-
-        chi_mass = sta.chi2(config.n - 1)
-        array = chi_mass.rvs(config.n)
-        temp = sta.mstats.mquantiles(
-            array, prob=[(1 - confidence_level) / 2, (1 + confidence_level) / 2]
+        btn = Button(
+            window,
+            text="рассчитать плотности!",
+            bg="blue",
+            fg="black",
+            command=partial(self.dens_info, ANSWER=ANSWER),
         )
-        xi_minus = temp[1]
-        xi_plus = temp[0]
-        left = (config.n - 1) * sample_disp / xi_minus
-        right = (config.n - 1) * sample_disp / xi_plus
+        btn.grid(column=0, row=5)
+        btn = Button(
+            window,
+            text="графики гистограммы",
+            bg="blue",
+            fg="black",
+            command=partial(
+                self.graf,
+                f=ANSWER["f"],
+                fx=ANSWER["fx"],
+                fy_x=ANSWER["fy_x"],
+                res_y_big=ANSWER["res_y_big"],
+                res_x_big=ANSWER["res_x_big"],
+            ),
+        )
+        btn.grid(column=2, row=5)
 
-        tk.Label(
-            self,
-            text=f"Actual interval estimate D[X] with confidence level={confidence_level}:",
-        ).grid(row=10, column=0)
-        tk.Label(self, text=f"[{left}, {right}]").grid(row=10, column=1)
+        btn = Button(
+            window,
+            text="Рассчитать реальные",
+            bg="blue",
+            fg="black",
+            command=partial(
+                self.get_real, res_y=ANSWER["res_y_big"], res_x=ANSWER["res_x_big"]
+            ),
+        )
+        btn.grid(column=0, row=7)
+        btn = Button(
+            window,
+            text="Рассчитать теоритические",
+            bg="blue",
+            fg="black",
+            command=partial(
+                self.calc_teor,
+                f=ANSWER["f"],
+                res_y=ANSWER["res_y_big"],
+                res_x=ANSWER["res_x_big"],
+            ),
+        )
+        btn.grid(column=2, row=7)
 
-    def get_actual_mx(self, data):
-        return sum(data) / len(data)
+    def my_hist(self, res, ff, fig, ax, color=None):
+        bins = (int)(math.log10(100000) * 2)
+        ls = np.linspace(np.min(res), np.max(res), 100)
 
-    def get_actual_disp(self, data):
-        return sum([e**2 for e in data]) / len(data)
+        ax.cla()
+        ax.hist(
+            res,
+            bins=bins,
+            density=True,
+            histtype='step',
+            label='Empirical',
+            color=color,
+        )
+        ax.plot(ls, [ff(i) for i in ls], color='red')
+
+    def my_hist_y(self, res_x, res_y, ff, fig, ax, color=None):
+        bins = (int)(math.log10(100000) * 2)
+        ls = np.linspace(np.min(res_y), np.max(res_y), 100)
+
+        ax.cla()
+        ax.hist(
+            res_y,
+            bins=bins,
+            density=True,
+            histtype='step',
+            label='Empirical',
+            color=color,
+        )
+        xx = sum(res_x) / len(res_x)
+        res = []
+        for i in ls:
+            res.append(ff(xx, i))
+        ax.plot(ls, res, color='red')
+        # МЕТОД НЕЙМАНА
+
+    def get_xyz(self, fx, fy_x, fy, W=math.sqrt(2) / 2, a=0, b=pi / 2, n=1000000):
+        X = []
+        Y = []
+        # Z=[]
+
+        for i in range(n):
+            flag_x = False
+            flag_y = False
+            # x1_star=None
+            while not flag_x:
+                x1 = random.random()
+                x2 = random.random()
+                x1_star = a + x1 * (b - a)
+                x2_star = x2 * W
+                if fx(x1_star) >= x2_star:
+                    X.append(x1_star)
+                    # x1_star=x1_star
+                    flag_x = True
+
+            while not flag_y:
+                # a_x=a_y
+                y1 = random.random()
+                y2 = random.random()
+                y1_star = a + y1 * (b - a)
+                y2_star = y2 * fy_x(x1_star)
+                if fy(x1_star, y1_star) >= y2_star:
+                    Y.append(y1_star)
+                    flag_y = True
+        return X, Y
+
+    def dens(
+        self,
+    ):
+        ANSWER = {}
+        x, y = sp.symbols('x y')
+        expn = "0.5*sin(x+y)"
+
+        gfg = sp.sympify(expn)
+        print(gfg)
+        f = sp.lambdify(sp.symbols('x, y'), expn)
+        a, b = 0, pi / 2
+        fy = sp.integrate(expn, (x, a, b))
+        fx = sp.integrate(expn, (y, a, b))
+        print('f(x):', fx)
+        print('f(y):', fy)
+        dep = sp.simplify(sp.Mul(fx, fy))
+        print(dep)
+        ind_flag = dep.equals(expn)
+        print(dep.equals(expn))
+        # if dep.equals(expn):
+
+        # не независимы
+        # условные вероятности
+        fx_y = sp.simplify(gfg / fy)
+        fy_x = sp.simplify(gfg / fx)
+        print('f(x|y)', fx_y)
+        print('f(y|x)', fy_x)
+        ANSWER['f(x)'] = fx
+        ANSWER['f(y)'] = fy
+        ANSWER['f(x|y)'] = fx_y
+        ANSWER['f(y|x)'] = fy_x
+        fx = sp.lambdify(sp.symbols('x'), fx)
+        fy = sp.lambdify(sp.symbols('y'), fy)
+        fy_x = sp.lambdify(sp.symbols('x,y'), fy_x)
+
+        def fy_x_max(x):
+            return 1 / (math.sin(x) + math.cos(x))
+
+        res_x_big, res_y_big = self.get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=1000000)
+
+        ANSWER['fx'] = fx
+        ANSWER['fy'] = fy
+        ANSWER['fy_x'] = fy_x
+        ANSWER['f'] = f
+        ANSWER['res_x_big'] = res_x_big
+        ANSWER['res_y_big'] = res_y_big
+        ANSWER["is_independant"] = ind_flag
+
+        return ANSWER
+
+    def graf(self, f, fx, fy_x, res_x_big, res_y_big):
+        def fy_x_max(x):
+            return 1 / (math.sin(x) + math.cos(x))
+
+        # res_x_big, res_y_big = get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=100000)
+
+        fig, axes = plt.subplots(2, 1)
+
+        self.my_hist(res_x_big, fx, fig, axes[0])
+        self.my_hist_y(res_x_big, res_y_big, fy_x, fig, axes[1], color="orange")
+        plt.show()
+
+        res_x, res_y = self.get_xyz(fx=fx, fy_x=fy_x_max, fy=fy_x, n=10000)
+
+        np.random.seed(19680801)
+
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+
+        x, y = np.array(res_x), np.array(res_y)
+        hist, x_edges, y_edges = np.histogram2d(x, y, bins=10, density=True)
+
+        x, y = np.meshgrid(x_edges[:-1], y_edges[:-1], indexing="ij")
+
+        dx = dy = x_edges[1] - x_edges[0]
+
+        dz = hist.ravel()
+
+        ax.bar3d(x.ravel(), y.ravel(), 0, dx, dy, dz)
+
+        ls1 = np.linspace(np.min(res_x), np.max(res_x), 1000)
+        ls2 = np.linspace(np.min(res_y), np.max(res_y), 1000)
+        ls1, ls2 = np.meshgrid(ls1, ls2)
+
+        ax.plot_surface(
+            ls1, ls2, np.array([f(*point) for point in zip(ls1, ls2)]), color="orange"
+        )
+        plt.show()
+
+    def dens_info(self, ANSWER):
+        messagebox.showinfo(
+            'Вероятности',
+            f"f(x): {ANSWER['f(x)']} \n f(y): {ANSWER['f(y)']} \n f(x|y): {ANSWER['f(x|y)']} \n f(y|x): {ANSWER['f(y|x)']}",
+        )
+        if ANSWER["is_independant"]:
+            messagebox.showinfo('Вероятности', "Независмы")
+        else:
+            messagebox.showinfo('Вероятности', "Зависмы")
+
+    def calc_teor(self, res_x, res_y, f, alpha=0.05):
+
+        x, y = sp.symbols('x y')
+        # xf(x)
+        expn = "0.5*x*(sin(x)+cos(x))"
+        a, b = 0, pi / 2
+        m_x_t = sp.integrate(expn, (x, a, b))
+        print(m_x_t)
+        expn = "0.5*y*(sin(y)+cos(y))"
+        m_y_t = sp.integrate(expn, (y, a, b))
+        print(m_y_t)
+
+        expn = "0.5*x*x*(sin(x)+cos(x))"
+        d_x_t = sp.integrate(expn, (x, a, b)) - m_x_t**2
+        print(d_x_t)
+        expn = "0.5*y*y*(sin(y)+cos(y))"
+        d_y_t = sp.integrate(expn, (y, a, b)) - m_y_t**2
+        print(d_y_t)
+        expn = f"(x-{m_x_t})*(y-{m_y_t})*0.5*sin(x+y)"
+        cov = sp.integrate(expn, (x, a, b), (y, a, b))
+        r_t = cov / (math.sqrt(d_x_t * d_y_t))
+        print(r_t)
+        s = (
+            f"M : {[m_x_t, m_y_t]},"
+            + "\n\n"
+            + f" D: {[d_x_t, d_y_t]},"
+            + "\n\n"
+            + f"r: {[r_t]}"
+            + "\n\n"
+        )
+        # messagebox.showinfo('theoritic',s)
+
+        m_x = sum(res_x) / len(res_x)
+        m_y = sum(res_y) / len(res_y)
+
+        tmp_x = np.array(res_x) - m_x
+        tmp_y = np.array(res_y) - m_y
+
+        d_x = (tmp_x @ tmp_x) / (len(res_x) - 1)
+        d_y = (tmp_y @ tmp_y) / (len(res_y) - 1)
+
+        r = (tmp_x @ tmp_y) / (len(res_x) * np.sqrt(d_x * d_y))
+
+        gamma = 1.0 - alpha
+        delta_x = d_x * sta.t.ppf(gamma, len(res_x) - 1) / np.sqrt(len(res_x) - 1)
+        delta_y = d_y * sta.t.ppf(gamma, len(res_y) - 1) / np.sqrt(len(res_y) - 1)
+
+        lx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(
+            1 - alpha / 2, len(res_x) - 1
+        )
+        rx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(alpha / 2, len(res_x) - 1)
+
+        ly = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(
+            1 - alpha / 2, len(res_y) - 1
+        )
+        ry = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(alpha / 2, len(res_y) - 1)
+
+        r_scaled = np.arctanh(r)
+        r_scaled_std = 1 / np.sqrt(len(res_x) - 3)
+        z = scipy.stats.norm.ppf(1 - alpha / 2)
+        rxy_l, rxy_r = np.tanh(r_scaled - z * r_scaled_std), np.tanh(
+            r_scaled + z * r_scaled_std
+        )
+
+        # s = f"M : {[m_x, m_y]}," + "\n\n" + f" D: {[d_x, d_y]}," + "\n\n" + f"r: {[r]}" + "\n\n"
+        s += (
+            f"m_x_interval: {(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
+            + "\n\n"
+        )
+        s += (
+            f"m_y interval: {(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
+            + "\n\n"
+        )
+        s += f"d_x interval: {(round(lx, 5), round(rx, 5))}," + "\n\n"
+        s += f"d_y interval: { (round(ly, 5), round(ry, 5))}," + "\n\n"
+        s += f"r interval: { (round(rxy_l, 5), round(rxy_r, 5))}," + "\n\n"
+        messagebox.showinfo('both', s)
+
+        # стьюдент
+        n = len(res_x)
+        diff = (m_x - m_x_t) * np.sqrt(n) / np.sqrt(d_x)
+        critical_level = scipy.stats.t.ppf(alpha, n)
+        ss = f" check mx: {diff < abs(critical_level)}"
+        print(diff < abs(critical_level))
+        messagebox.showinfo('hypotesis', ss)
+
+        n = len(res_y)
+        diff = (m_y - m_y_t) * np.sqrt(n) / np.sqrt(d_y)
+        critical_level = scipy.stats.t.ppf(alpha, n)
+        ss = f" check my: {diff < abs(critical_level)}"
+        print(diff < abs(critical_level))
+        messagebox.showinfo('hypotesis', ss)
+
+        # хи квадрат
+        n = len(res_x)
+
+        chi2 = (n - 1) * d_x / d_x_t
+
+        chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
+        chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
+
+        print(chi2_l < chi2 < chi2_r)
+        ss = f" check dx: {chi2_l < chi2 < chi2_r}"
+        print(diff < abs(critical_level))
+        messagebox.showinfo('hypotesis', ss)
+
+        n = len(res_y)
+
+        chi2 = (n - 1) * d_y / d_y_t
+
+        chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
+        chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
+
+        print(chi2_l < chi2 < chi2_r)
+        ss = f" check dy: {chi2_l < chi2 < chi2_r}"
+        print(diff < abs(critical_level))
+        messagebox.showinfo('hypotesis', ss)
+        # http://statistica.ru/theory/znachimost-koeffitsienta-korrelyatsii-doveritelnyy-interval/
+        # z = (np.arctanh(r) - np.arctanh(r_t)) * np.sqrt(len(res_x) - 3)
+        # critical = scipy.stats.norm.ppf(0.05)
+        # print(z < abs(critical))
+        # ss = f" check r: {z < abs(critical)}"
+        # print(diff < abs(critical_level))
+        # messagebox.showinfo('hypotesis', ss)
+
+    # http://old.gsu.by/biglib/GSU/%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9/%D0%AD%D0%9A%D0%B8%D0%A2%D0%92/%D1%80%D1%83%D0%BA-%D0%BB%D0%B0%D0%B1-%D0%9C%D0%A1/3%20%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%B2%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8%20%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D1%8B%D1%85%20%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D0%BE%D0%B2.pdf
+
+    def get_real(self, res_x, res_y, alpha=0.05):
+        m_x = sum(res_x) / len(res_x)
+        m_y = sum(res_y) / len(res_y)
+
+        tmp_x = np.array(res_x) - m_x
+        tmp_y = np.array(res_y) - m_y
+
+        d_x = (tmp_x @ tmp_x) / (len(res_x) - 1)
+        d_y = (tmp_y @ tmp_y) / (len(res_y) - 1)
+
+        r = (tmp_x @ tmp_y) / (len(res_x) * np.sqrt(d_x * d_y))
+
+        gamma = 1.0 - alpha
+        delta_x = d_x * sta.t.ppf(gamma, len(res_x) - 1) / np.sqrt(len(res_x) - 1)
+        delta_y = d_y * sta.t.ppf(gamma, len(res_y) - 1) / np.sqrt(len(res_y) - 1)
+
+        lx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(
+            1 - alpha / 2, len(res_x) - 1
+        )
+        rx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(alpha / 2, len(res_x) - 1)
+
+        ly = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(
+            1 - alpha / 2, len(res_y) - 1
+        )
+        ry = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(alpha / 2, len(res_y) - 1)
+
+        r_scaled = np.arctanh(r)
+        r_scaled_std = 1 / np.sqrt(len(res_x) - 3)
+        z = scipy.stats.norm.ppf(1 - alpha / 2)
+        rxy_l, rxy_r = np.tanh(r_scaled - z * r_scaled_std), np.tanh(
+            r_scaled + z * r_scaled_std
+        )
+
+        s = (
+            f"M : {[m_x, m_y]},"
+            + "\n\n"
+            + f" D: {[d_x, d_y]},"
+            + "\n\n"
+            + f"r: {[r]}"
+            + "\n\n"
+        )
+        s += (
+            f"m_x_interval: {(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
+            + "\n\n"
+        )
+        s += (
+            f"m_y interval: {(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
+            + "\n\n"
+        )
+        s += f"d_x interval: {(round(lx, 5), round(rx, 5))}," + "\n\n"
+        s += f"d_y interval: { (round(ly, 5), round(ry, 5))}," + "\n\n"
+        # s+= f"r interval: { (round(rxy_l, 5), round(rxy_r, 5))}," +"\n\n"
+        messagebox.showinfo('real', s)
+
+        return {
+            'M': [m_x, m_y],
+            'D': [d_x, d_y],
+            'r': [r],
+            'm_x interval': (round(m_x - delta_x, 5), round(m_y + delta_x, 5)),
+            'm_y interval': (round(m_x - delta_x, 5), round(m_y + delta_x, 5)),
+            'd_x interval': (round(lx, 5), round(rx, 5)),
+            'd_y interval': (round(ly, 5), round(ry, 5)),
+            'r interval': (round(rxy_l, 5), round(rxy_r, 5)),
+        }
