@@ -48,38 +48,38 @@ class Task2Frame(Frame):
     # def get_cond(data_p) :
 
     def task2(self, alpha=0.05):
-        data_p = self.entry_matrix.get()
-        data_p = eval(data_p)
-        data_p = np.array(data_p)
+        data = self.entry_matrix.get()
+        data = eval(data)
+        data = np.array(data)
 
         values = self.entry_values.get()
         print(values)
         x, y = eval(values)
         x, y = np.array(x), np.array(y)
 
-        n = data_p.shape[0]
-        m = data_p.shape[1]
-        print(data_p)
+        n = data.shape[0]
+        m = data.shape[1]
+        print(data)
         print(x, y)
         if len(x) != n or len(y) != m:
             messagebox.showinfo('Error', "Размерность матрицы и значений не совпадают")
             return
 
-        p_x = np.sum(data_p, axis=1)
+        p_x = np.sum(data, axis=1)
         print(x, p_x)
         # P(X=xi,Y=yk)=P(X=xi)⋅P(Y=yk),
         # https://www.matburo.ru/ex_tv.php?p1=tv2md
-        print(np.sum(data_p))
-        if np.sum(data_p) != 1:
+        print(np.sum(data))
+        if np.sum(data) != 1:
             messagebox.showinfo('Error', "Сумма матрицы дожны быть равна 1")
             return
 
         else:
             # проверка независимости
             flag = True
-            for i in range(data_p.shape[0]):
-                for j in range(data_p.shape[1]):
-                    if data_p[i, j] != np.sum(data_p[i, :]) * np.sum(data_p[:, j]):
+            for i in range(data.shape[0]):
+                for j in range(data.shape[1]):
+                    if data[i, j] != np.sum(data[i, :]) * np.sum(data[:, j]):
                         flag = False
                         break
             if flag:
@@ -91,7 +91,7 @@ class Task2Frame(Frame):
                 messagebox.showinfo('Зависимы', "Зависимы")
 
             # # условные плотности
-            res_xi_when_yj, res_yj_when_xi = self.get_cond(data_p)
+            res_xi_when_yj, res_yj_when_xi = self.get_cond(data)
             print(res_xi_when_yj)
             messagebox.showinfo(
                 'условные плотности',
@@ -125,8 +125,8 @@ y|x:
 
                 return result
 
-            p_x = np.sum(data_p, axis=1)
-            p_y = np.sum(data_p, axis=0)
+            p_x = np.sum(data, axis=1)
+            p_y = np.sum(data, axis=0)
             res = generate_d(p_x, res_yj_when_xi)
             # print(res)
             res_x = [el[0] for el in res]
@@ -147,7 +147,7 @@ y|x:
                 d_x = d_x_tmp @ p_x
                 d_y_tmp = (y - m_y) ** 2
                 d_y = d_y_tmp @ p_y
-                r = (x - m_x) @ ((y - m_y) @ data_p.T)
+                r = (x - m_x) @ ((y - m_y) @ data.T)
                 r = r / np.sqrt(d_x * d_y)
                 return {"mx": m_x, "my": m_y, "dx": d_x, "dy": d_y, "r": r}
 
