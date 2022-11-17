@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 
 import random
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ class Task2Frame(Frame):
             return
 
         else:
-            # проверка независоимости
+            # проверка независимости
             flag = True
             for i in range(data_p.shape[0]):
                 for j in range(data_p.shape[1]):
