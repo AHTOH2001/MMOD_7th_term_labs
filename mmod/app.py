@@ -30,15 +30,15 @@ class App(tk.Tk):
 
     def init_task(self, task_name):
         TaskFrame = TaskFactory.create_task(task_name)
-        frame = self.create_new_frame()
-        task_frame = TaskFrame(frame)
+        task_frame = self.create_new_frame(TaskFrame)
+        # task_frame = TaskFrame(frame)
         task_frame.grid()
 
-    def create_new_frame(self):
+    def create_new_frame(self, frame_class=tk.Frame):
         if len(self.frame_stack) == 0:
-            frame = tk.Frame(self)
+            frame = frame_class(self)
         else:
-            frame = tk.Frame(self.frame_stack[-1])
+            frame = frame_class(self.frame_stack[-1])
         frame.grid(row=0, columnspan=10, rowspan=10, sticky="NS")
 
         self.frame_stack.append(frame)

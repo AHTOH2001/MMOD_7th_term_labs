@@ -11,64 +11,62 @@ import scipy
 import scipy.stats as sta
 import sympy as sp
 
+from .theor_frame import TheorFrame
+
 from . import config
 
 
 class Task1Frame(Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
-        self.a, self.b = 0, pi / 2
-        result = self.calculate()
-        lbl = Label(self, text="f(x,y) = 0.5*sin(x+y)")
+        lbl = Label(self, text="Тип СМО:")
         lbl.grid(column=0, row=0)
-        lbl = Label(self, text=f"0 <= x, y <= pi / 2")
-        lbl.grid(column=0, row=1)
+        lbl = Label(self, text="Одноканальное с ожиданием")
+        lbl.grid(column=1, row=0)
 
-        btn = Button(
-            self,
-            text="Плотности распределения",
-            command=partial(self.dens_info, result=result),
-        )
-        btn.grid(column=0, row=2)
-        
-        
-        btn = Button(
-            self,
-            text="Теоретические оценки",
-            command=partial(
-                self.calc_teor,
-                f=result["f"],
-                res_y=result["res_y_big"],
-                res_x=result["res_x_big"],
-            ),
-        )
-        btn.grid(column=0, row=3)
+        lbl = Label(self, text='Кол-во мест в очереди:')
+        lbl.grid(column=0, row=1)
+        self.m_entry = Entry(self)
+        self.m_entry.insert(0, str(config.m))
+        self.m_entry.grid(column=1, row=1)
+
+        lbl = Label(self, text='Кол-во заявок в час:')
+        lbl.grid(column=0, row=2)
+        self.lambd_entry = Entry(self)
+        self.lambd_entry.insert(0, str(config.lambd))
+        self.lambd_entry.grid(column=1, row=2)
+
+        lbl = Label(self, text='Поток восстановлений:')
+        lbl.grid(column=0, row=3)
+        self.mu_entry = Entry(self)
+        self.mu_entry.insert(0, str(config.mu))
+        self.mu_entry.grid(column=1, row=3)
+
+        btn = Button(self, text="Теоретические оценки", command=self.calc_teor)
+        btn.grid(column=0, row=4, columnspan=2)
 
         btn = Button(
             self,
             text="Моделирование",
-            command=partial(
-                self.calc_teor,
-                f=result["f"],
-                res_y=result["res_y_big"],
-                res_x=result["res_x_big"],
-            ),
         )
-        btn.grid(column=0, row=4)
+        btn.grid(column=0, row=5, columnspan=2)
 
         btn = Button(
             self,
             text="График",
-            command=partial(
-                self.graf,
-                f=result["f"],
-                fx=result["fx"],
-                fy_x=result["fy_x"],
-                res_y_big=result["res_y_big"],
-                res_x_big=result["res_x_big"],
-            ),
         )
-        btn.grid(column=0, row=5)
+        btn.grid(column=0, row=6, columnspan=2)
+
+    def parse_data(self):
+        m = int(self.m_entry.get())
+        lambd = int(self.lambd_entry.get())
+        mu = float(self.mu_entry.get())
+        print(f'Entered data: {m=}, {lambd=}, {mu=}')
+        return m, lambd, mu
+
+    def calc_teor(self):
+        frame = self.master.master.create_new_frame(TheorFrame)
+        frame.grid()        
 
     def my_hist(self, res, ff, fig, ax, color=None):
         bins = (int)(math.log10(100000) * 2)
@@ -238,118 +236,3 @@ f(y|x):
 {result['f(y|x)']}
 """,
             )
-
-    def calc_teor(self, res_x, res_y, f, alpha=0.05):
-
-        x, y = sp.symbols('x y')
-        # xf(x)
-        expn = "0.5*x*(sin(x)+cos(x))"
-        a, b = 0, pi / 2
-        m_x_t = sp.integrate(expn, (x, a, b))
-
-        expn = "0.5*y*(sin(y)+cos(y))"
-        m_y_t = sp.integrate(expn, (y, a, b))
-
-        expn = "0.5*x*x*(sin(x)+cos(x))"
-        d_x_t = sp.integrate(expn, (x, a, b)) - m_x_t**2
-
-        expn = "0.5*y*y*(sin(y)+cos(y))"
-        d_y_t = sp.integrate(expn, (y, a, b)) - m_y_t**2
-
-        expn = f"(x-{m_x_t})*(y-{m_y_t})*0.5*sin(x+y)"
-        cov = sp.integrate(expn, (x, a, b), (y, a, b))
-        r_t = cov / (math.sqrt(d_x_t * d_y_t))
-
-        s = (
-            f"M : \n{[m_x_t, m_y_t]},"
-            + "\n\n"
-            + f" D: \n{[d_x_t, d_y_t]},"
-            + "\n\n"
-            + f"r: \n{[r_t]}"
-            + "\n\n"
-        )
-        # messagebox.showinfo('theoritic',s)
-
-        m_x = sum(res_x) / len(res_x)
-        m_y = sum(res_y) / len(res_y)
-
-        tmp_x = np.array(res_x) - m_x
-        tmp_y = np.array(res_y) - m_y
-
-        d_x = (tmp_x @ tmp_x) / (len(res_x) - 1)
-        d_y = (tmp_y @ tmp_y) / (len(res_y) - 1)
-
-        r = (tmp_x @ tmp_y) / (len(res_x) * np.sqrt(d_x * d_y))
-
-        gamma = 1.0 - alpha
-        # quantile
-        delta_x = d_x * sta.t.ppf(gamma, len(res_x) - 1) / np.sqrt(len(res_x) - 1)
-        delta_y = d_y * sta.t.ppf(gamma, len(res_y) - 1) / np.sqrt(len(res_y) - 1)
-
-        lx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(
-            1 - alpha / 2, len(res_x) - 1
-        )
-        rx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(alpha / 2, len(res_x) - 1)
-
-        ly = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(
-            1 - alpha / 2, len(res_y) - 1
-        )
-        ry = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(alpha / 2, len(res_y) - 1)
-
-        r_scaled = np.arctanh(r)
-        r_scaled_std = 1 / np.sqrt(len(res_x) - 3)
-        z = scipy.stats.norm.ppf(1 - alpha / 2)
-        rxy_l, rxy_r = np.tanh(r_scaled - z * r_scaled_std), np.tanh(
-            r_scaled + z * r_scaled_std
-        )
-
-        s += (
-            f"m_x_interval: \n{(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
-            + "\n\n"
-        )
-        s += (
-            f"m_y interval: \n{(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
-            + "\n\n"
-        )
-        s += f"d_x interval: \n{(round(lx, 5), round(rx, 5))}," + "\n\n"
-        s += f"d_y interval: \n{ (round(ly, 5), round(ry, 5))}," + "\n\n"
-        s += f"r interval: \n{ (round(rxy_l, 5), round(rxy_r, 5))}," + "\n\n"
-        messagebox.showinfo('both', s)
-
-        # стьюдент
-        n = len(res_x)
-        diff = (m_x - m_x_t) * np.sqrt(n) / np.sqrt(d_x)
-        critical_level = scipy.stats.t.ppf(alpha, n)
-        ss = f"check mx: \n{diff < abs(critical_level)}"
-
-        messagebox.showinfo('hypotesis', ss)
-
-        n = len(res_y)
-        diff = (m_y - m_y_t) * np.sqrt(n) / np.sqrt(d_y)
-        critical_level = scipy.stats.t.ppf(alpha, n)
-        ss = f"check my: \n{diff < abs(critical_level)}"
-
-        messagebox.showinfo('hypotesis', ss)
-
-        # хи квадрат
-        n = len(res_x)
-
-        chi2 = (n - 1) * d_x / d_x_t
-
-        chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
-        chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
-
-        ss = f"check dx: \n{chi2_l < chi2 < chi2_r}"
-
-        messagebox.showinfo('hypotesis', ss)
-
-        n = len(res_y)
-
-        chi2 = (n - 1) * d_y / d_y_t
-
-        chi2_l = scipy.stats.chi2.ppf(alpha / 2, n - 1)
-        chi2_r = scipy.stats.chi2.ppf(1 - 0.05 / 2, n - 1)
-
-        ss = f"check dy: \n{chi2_l < chi2 < chi2_r}"
-
-        messagebox.showinfo('hypotesis', ss)
