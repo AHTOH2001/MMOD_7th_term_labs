@@ -30,28 +30,8 @@ class Task1Frame(Frame):
             command=partial(self.dens_info, result=result),
         )
         btn.grid(column=0, row=2)
-        btn = Button(
-            self,
-            text="Графики",
-            command=partial(
-                self.graf,
-                f=result["f"],
-                fx=result["fx"],
-                fy_x=result["fy_x"],
-                res_y_big=result["res_y_big"],
-                res_x_big=result["res_x_big"],
-            ),
-        )
-        btn.grid(column=0, row=3)
-
-        btn = Button(
-            self,
-            text="Фактические оценки",
-            command=partial(
-                self.get_real, res_y=result["res_y_big"], res_x=result["res_x_big"]
-            ),
-        )
-        btn.grid(column=0, row=4)
+        
+        
         btn = Button(
             self,
             text="Теоретические оценки",
@@ -60,6 +40,32 @@ class Task1Frame(Frame):
                 f=result["f"],
                 res_y=result["res_y_big"],
                 res_x=result["res_x_big"],
+            ),
+        )
+        btn.grid(column=0, row=3)
+
+        btn = Button(
+            self,
+            text="Моделирование",
+            command=partial(
+                self.calc_teor,
+                f=result["f"],
+                res_y=result["res_y_big"],
+                res_x=result["res_x_big"],
+            ),
+        )
+        btn.grid(column=0, row=4)
+
+        btn = Button(
+            self,
+            text="График",
+            command=partial(
+                self.graf,
+                f=result["f"],
+                fx=result["fx"],
+                fy_x=result["fy_x"],
+                res_y_big=result["res_y_big"],
+                res_x_big=result["res_x_big"],
             ),
         )
         btn.grid(column=0, row=5)
@@ -347,68 +353,3 @@ f(y|x):
         ss = f"check dy: \n{chi2_l < chi2 < chi2_r}"
 
         messagebox.showinfo('hypotesis', ss)
-
-    def get_real(self, res_x, res_y, alpha=0.05):
-        m_x = sum(res_x) / len(res_x)
-        m_y = sum(res_y) / len(res_y)
-
-        tmp_x = np.array(res_x) - m_x
-        tmp_y = np.array(res_y) - m_y
-
-        d_x = (tmp_x @ tmp_x) / (len(res_x) - 1)
-        d_y = (tmp_y @ tmp_y) / (len(res_y) - 1)
-
-        r = (tmp_x @ tmp_y) / (len(res_x) * np.sqrt(d_x * d_y))
-
-        gamma = 1.0 - alpha
-        delta_x = d_x * sta.t.ppf(gamma, len(res_x) - 1) / np.sqrt(len(res_x) - 1)
-        delta_y = d_y * sta.t.ppf(gamma, len(res_y) - 1) / np.sqrt(len(res_y) - 1)
-
-        lx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(
-            1 - alpha / 2, len(res_x) - 1
-        )
-        rx = ((len(res_x) - 1) * d_x) / scipy.stats.chi2.ppf(alpha / 2, len(res_x) - 1)
-
-        ly = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(
-            1 - alpha / 2, len(res_y) - 1
-        )
-        ry = ((len(res_y) - 1) * d_y) / scipy.stats.chi2.ppf(alpha / 2, len(res_y) - 1)
-
-        r_scaled = np.arctanh(r)
-        r_scaled_std = 1 / np.sqrt(len(res_x) - 3)
-        z = scipy.stats.norm.ppf(1 - alpha / 2)
-        rxy_l, rxy_r = np.tanh(r_scaled - z * r_scaled_std), np.tanh(
-            r_scaled + z * r_scaled_std
-        )
-
-        s = (
-            f"M : \n{[m_x, m_y]},"
-            + "\n\n"
-            + f" D: \n{[d_x, d_y]},"
-            + "\n\n"
-            + f"r: \n{[r]}"
-            + "\n\n"
-        )
-        s += (
-            f"m_x_interval: \n{(round(m_x - delta_x, 5), round(m_x + delta_x, 5))},"
-            + "\n\n"
-        )
-        s += (
-            f"m_y interval: \n{(round(m_y - delta_y, 5), round(m_y + delta_y, 5))},"
-            + "\n\n"
-        )
-        s += f"d_x interval: \n{(round(lx, 5), round(rx, 5))}," + "\n\n"
-        s += f"d_y interval: \n{ (round(ly, 5), round(ry, 5))}," + "\n\n"
-        # s+= f"r interval: \n{ (round(rxy_l, 5), round(rxy_r, 5))}," +"\n\n"
-        messagebox.showinfo('real', s)
-
-        return {
-            'M': [m_x, m_y],
-            'D': [d_x, d_y],
-            'r': [r],
-            'm_x interval': (round(m_x - delta_x, 5), round(m_y + delta_x, 5)),
-            'm_y interval': (round(m_x - delta_x, 5), round(m_y + delta_x, 5)),
-            'd_x interval': (round(lx, 5), round(rx, 5)),
-            'd_y interval': (round(ly, 5), round(ry, 5)),
-            'r interval': (round(rxy_l, 5), round(rxy_r, 5)),
-        }
