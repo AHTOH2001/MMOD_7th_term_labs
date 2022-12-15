@@ -17,11 +17,13 @@ from . import config
 class ModelingFrame(Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
+        self.list_box = Listbox(self, width=230, height=50)
+        # self.columnconfigure(0, minsize=2000)
+        # self.rowconfigure(0, minsize=1000)
+        self.list_box.grid()
         self.ind = 0
         m, lambd, mu = self.master.parse_data()
         T0 = 0
-        application_n = 0
-        T_end_processing = [None] * application_n
         t_n = config.t_n
         n = config.n
         delta = t_n / n
@@ -39,6 +41,7 @@ class ModelingFrame(Frame):
         application_id = 0
         is_processing = False
         max_time = 0
+        application_n = 0
 
         while max_time < t_n:
             r = random.random()
@@ -54,12 +57,27 @@ class ModelingFrame(Frame):
             T_processing.append(t_ser)
 
         print('Generated T:', T)
-        T_end_processing = [None] * application_n
+        print(f'{T_processing=}')
+        T_finish_processing = []
+
+        app_num = 0
+        for t, t_proc in zip(T, T_processing):
+            self.labels_row(
+                'app num:',
+                app_num,
+                'время прихода',
+                f'{t:.2f}',
+                'время обработки',
+                f'{t_proc:.2f}',
+            )
+            app_num += 1
+
+        self.labels_row('')
 
         while T_now <= t_n:
             # сначала проверим , что мы не закончили когонибудь обрабатывать
             if is_processing:
-                if T_now > T_end_processing[in_process]:
+                if T_finish_processing and T_now > T_finish_processing[-1]:
                     processed.append(in_process)
                     is_processing = False
                     in_process = None
@@ -79,27 +97,30 @@ class ModelingFrame(Frame):
                         in_process = que[0]
                         que.pop(0)
                     is_processing = True
-                    T_end_processing[in_process] = T_processing[in_process] + T_now
+                    T_finish_processing.append(T_processing[in_process] + T_now)
 
                 application_id += 1
 
             res = {
                 "T_now": T_now,
                 "in_process": in_process,
-                "end_time": T_end_processing,
+                "finish_proc_time": T_finish_processing,
                 "processed": processed,
                 "declined": declined,
-                "всего в сиситеме": int(in_process is not None) + len(que),
-                "que": que,
+                "всего в системе": int(in_process is not None) + len(que),
+                "queue": que,
             }
             state.append(res)
-            print("\n\n", res, "\n\n")
-            self.label_pair('state', res)
+
+            self.labels_row(*[f'{k}: {w}' for k, w in res.items()])
             T_now += delta
 
-    def label_pair(self, title, value):
-        lbl = Label(self, text=title)
-        lbl.grid(column=0, row=self.ind)
-        lbl = Label(self, text=value)
-        lbl.grid(column=1, row=self.ind)
-        self.ind += 1
+    def labels_row(self, *args):
+        res_text = ''
+        for i, arg in enumerate(args):
+            res_text += str(arg) + '  '
+            # lbl = Label(self, text=arg)
+            # lbl.grid(column=i, row=self.ind)
+        self.list_box.insert(END, res_text)
+
+        # self.ind += 1
