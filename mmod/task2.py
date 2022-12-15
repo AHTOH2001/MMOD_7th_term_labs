@@ -15,18 +15,18 @@ class Task2Frame(Frame):
             self,
             text='Введите матрицу распределения ДСВ',
         )
-        lbl.grid(column=0, row=0, columnspan=2)
+        lbl.grid(column=0, row=0, columnspan=3)
 
         self.entry_matrix = Entry(self)
-        self.entry_matrix.grid(column=1, row=2)
+        self.entry_matrix.grid(column=1, row=2, columnspan=3)
 
         lbl = Label(self, text='matrix:')
         lbl.grid(column=0, row=2)
 
-        self.entry_values = Entry(self)
-        self.entry_values.grid(column=1, row=3)
+        self.entry_keys = Entry(self)
+        self.entry_keys.grid(column=1, row=3, columnspan=3)
 
-        lbl = Label(self, text='values:')
+        lbl = Label(self, text='keys:')
         lbl.grid(column=0, row=3)
 
         btn = Button(self, text="Запуск", command=self.task2)
@@ -52,9 +52,9 @@ class Task2Frame(Frame):
         data = eval(data)
         data = np.array(data)
 
-        values = self.entry_values.get()
-        print(values)
-        x, y = eval(values)
+        keys = self.entry_keys.get()
+        print(keys)
+        x, y = eval(keys)
         x, y = np.array(x), np.array(y)
 
         n = data.shape[0]

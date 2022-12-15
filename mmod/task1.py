@@ -223,13 +223,14 @@ f(y):
         else:
             messagebox.showinfo('Вероятности', "Зависмы")
             messagebox.showinfo(
+                'Результат',
                 f"""
 f(x|y):
 {result['f(x|y)']}
 
 f(y|x):
 {result['f(y|x)']}
-"""
+""",
             )
 
     def calc_teor(self, res_x, res_y, f, alpha=0.05):
@@ -275,6 +276,7 @@ f(y|x):
         r = (tmp_x @ tmp_y) / (len(res_x) * np.sqrt(d_x * d_y))
 
         gamma = 1.0 - alpha
+        # quantile
         delta_x = d_x * sta.t.ppf(gamma, len(res_x) - 1) / np.sqrt(len(res_x) - 1)
         delta_y = d_y * sta.t.ppf(gamma, len(res_y) - 1) / np.sqrt(len(res_y) - 1)
 
